@@ -36,6 +36,7 @@
 #include "string.hpp"
 
 LOG_MODULE_REGISTER(programming, CONFIG_APP_LOG_LEVEL);
+
 // ── Construction tests ────────────────────────────────────────────────────────
 
 ZTEST(string_test, test_construct_from_cstring)
