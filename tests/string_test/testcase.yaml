@@ -1,0 +1,5 @@
+tests:
+  programming.string_test:
+    tags:
+      - cpp
+      
