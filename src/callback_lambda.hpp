@@ -25,4 +25,3 @@
 #pragma once
 
 void callback_lambda();
-

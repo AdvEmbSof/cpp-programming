@@ -18,10 +18,12 @@
  *
  * @brief callback with function pointer implementation
  *        Classic C callback pattern: function pointer + void* context.
- * 
+ *
  * @date 2025-07-01
  * @version 1.0.0
  ***************************************************************************/
+
+#include "callback_fp.h"
 
 // zephyr
 #include <zephyr/kernel.h>
@@ -35,105 +37,99 @@ LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 typedef enum {
-    EVENT_NONE    = 0,
-    EVENT_PRESSED = 1,
-    EVENT_RELEASED = 2,
+  EVENT_NONE     = 0,
+  EVENT_PRESSED  = 1,
+  EVENT_RELEASED = 2,
 } event_t;
 
 typedef struct {
-    int      id;
-    unsigned press_count;
-    unsigned release_count;
+  int id;
+  unsigned press_count;
+  unsigned release_count;
 } button_state_t;
 
 // Callback signature: takes opaque context pointer and event code
-typedef void (*callback_t)(void *ctx, int event);
+typedef void (*callback_t)(void* ctx, int event);
 
 // ── Callback registry ─────────────────────────────────────────────────────────
 typedef struct {
-    callback_t  cb;
-    void       *ctx;
+  callback_t cb;
+  void* ctx;
 } registry_entry_t;
 
 #define MAX_CALLBACKS 8
 
 static registry_entry_t registry[MAX_CALLBACKS];
-static int              registry_count = 0;
+static int registry_count = 0;
 
-static void register_callback(callback_t cb, void *ctx)
-{
-    if (registry_count >= MAX_CALLBACKS) {
-        LOG_ERR("ERROR: callback registry full");
-        return;
-    }
-    registry[registry_count].cb  = cb;
-    registry[registry_count].ctx = ctx;
-    registry_count++;
+static void register_callback(callback_t cb, void* ctx) {
+  if (registry_count >= MAX_CALLBACKS) {
+    LOG_ERR("ERROR: callback registry full");
+    return;
+  }
+  registry[registry_count].cb  = cb;
+  registry[registry_count].ctx = ctx;
+  registry_count++;
 }
 
-static void dispatch_event(int event)
-{
-    for (int i = 0; i < registry_count; i++) {
-        if (registry[i].cb) {
-            registry[i].cb(registry[i].ctx, event);
-        }
+static void dispatch_event(int event) {
+  for (int i = 0; i < registry_count; i++) {
+    if (registry[i].cb) {
+      registry[i].cb(registry[i].ctx, event);
     }
+  }
 }
 
 // ── Callbacks ─────────────────────────────────────────────────────────────────
 
 // Handler for button A
-static void button_handler(void *ctx, int event)
-{
-    // ctx must be cast back to the concrete type — not type safe
-    button_state_t *state = (button_state_t *)ctx;
+static void button_handler(void* ctx, int event) {
+  // ctx must be cast back to the concrete type — not type safe
+  button_state_t* state = (button_state_t*)ctx;
 
-    switch ((event_t)event) {
-        case EVENT_PRESSED:
-            state->press_count++;
-            LOG_INF("[button %d] pressed  (total: %u)",
-                    state->id, state->press_count);
-            break;
-        case EVENT_RELEASED:
-            state->release_count++;
-            LOG_INF("[button %d] released (total: %u)",
-                    state->id, state->release_count);
-            break;
-        default:
-            break;
-    }
+  switch ((event_t)event) {
+    case EVENT_PRESSED:
+      state->press_count++;
+      LOG_INF("[button %d] pressed  (total: %u)", state->id, state->press_count);
+      break;
+    case EVENT_RELEASED:
+      state->release_count++;
+      LOG_INF("[button %d] released (total: %u)", state->id, state->release_count);
+      break;
+    default:
+      break;
+  }
 }
 
 // A second handler registered for the same events
-static void logger_handler(void *ctx, int event)
-{
-    const char *label = (const char *)ctx;
-    LOG_INF("[logger '%s'] event=%d", label, event);
+static void logger_handler(void* ctx, int event) {
+  const char* label = (const char*)ctx;
+  LOG_INF("[logger '%s'] event=%d", label, event);
 }
 
 // Function called from main()
-void callback_fp(void)
-{
-    button_state_t btn_a = { .id = 0, .press_count = 0, .release_count = 0 };
-    button_state_t btn_b = { .id = 1, .press_count = 0, .release_count = 0 };
+void callback_fp(void) {
+  button_state_t btn_a = {.id = 0, .press_count = 0, .release_count = 0};
+  button_state_t btn_b = {.id = 1, .press_count = 0, .release_count = 0};
 
-    // Register handlers — each carries its own context via void*
-    register_callback(button_handler, &btn_a);
-    register_callback(button_handler, &btn_b);
-    register_callback(logger_handler, (void *)"audit");
+  // Register handlers — each carries its own context via void*
+  register_callback(button_handler, &btn_a);
+  register_callback(button_handler, &btn_b);
+  register_callback(logger_handler, (void*)"audit");
 
-    // Simulate events
-    dispatch_event(EVENT_PRESSED);
-    dispatch_event(EVENT_PRESSED);
-    dispatch_event(EVENT_RELEASED);
+  // Simulate events
+  dispatch_event(EVENT_PRESSED);
+  dispatch_event(EVENT_PRESSED);
+  dispatch_event(EVENT_RELEASED);
 
-    LOG_INF("Final counts: btn_a pressed=%u btn_b pressed=%u\n",
-            btn_a.press_count, btn_b.press_count);
+  LOG_INF("Final counts: btn_a pressed=%u btn_b pressed=%u\n",
+          btn_a.press_count,
+          btn_b.press_count);
 
-    // Registering the following callbacks is valid but may cause a crash
-    // This shows that type-unsafe cast are possible
-    // int* a = NULL;
-    // register_callback(button_handler, a);
-    // register_callback(logger_handler, &a);
-    // dispatch_event(EVENT_RELEASED);
+  // Registering the following callbacks is valid but may cause a crash
+  // This shows that type-unsafe cast are possible
+  // int* a = NULL;
+  // register_callback(button_handler, a);
+  // register_callback(logger_handler, &a);
+  // dispatch_event(EVENT_RELEASED);
 }
