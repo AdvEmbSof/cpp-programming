@@ -13,30 +13,16 @@
 // limitations under the License.
 
 /****************************************************************************
- * @file cpp_like_casting.hpp
+ * @file callback_lambda.hpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief C casting function implementation
+ * @brief callback with lambda function declaration
  *
  * @date 2025-07-01
  * @version 1.0.0
  ***************************************************************************/
 
-#include "c_like_casting.h"
+#pragma once
 
-// zephyr
-#include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
+void callback_lambda();
 
-LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
-
-void c_like_casting() {
-  char i  = 0;
-  char j  = 0;
-  char* p = &i;
-  void* q = p;
-  int* pp = q;  // unsafe, legal C, not C++
-  LOG_DBG("%d %d", i, j);
-  *pp = -1;  // This overwrites memory starting at &i
-  LOG_DBG("%d %d", i, j);
-}

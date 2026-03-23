@@ -16,7 +16,7 @@
  * @file string_test.cpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief Test program for demonstrating the basic test features
+ * @brief Test program for validating the String class implementation
  *
  * @date 2025-07-01
  * @version 1.0.0
