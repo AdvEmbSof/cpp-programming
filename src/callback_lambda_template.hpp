@@ -13,37 +13,19 @@
 // limitations under the License.
 
 /****************************************************************************
- * @file main.cpp
+ * @file callback_lambda.hpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief Main program for demonstrating C/C++ programming important concepts
+ * @brief callback with capturing lambda function declaration
+ *        As compared to callback_lambda, the capturing lambda
+ *        is passed to a template parameter. No std::function used anywhere.
+ *        The lambda type is fully known at compile time and the compiler
+ *        can inline the call. This is a zero-cost alternative.
  *
  * @date 2025-07-01
  * @version 1.0.0
  ***************************************************************************/
-// zephyr
-#include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
 
-// local
-#include "c_like_casting.h"
-#include "callback_fp.h"
-#include "callback_lambda.hpp"
-#include "callback_lambda_template.hpp"
-#include "classes.hpp"
-#include "cpp_like_casting.hpp"
-#include "memory_allocation.hpp"
+#pragma once
 
-LOG_MODULE_REGISTER(programming, CONFIG_APP_LOG_LEVEL);
-
-int main() {
-  // c_like_casting();
-  // cpp_like_casting();
-  // uncommment the next line for running faulty type casting
-  // c_vs_cpp_like_casting();
-  // play_with_classes();
-  // memory_allocation();
-  callback_fp();
-  callback_lambda();
-  callback_lambda_template();
-}
+void callback_lambda_template();

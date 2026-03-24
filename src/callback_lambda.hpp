@@ -16,7 +16,7 @@
  * @file callback_lambda.hpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief callback with lambda function declaration
+ * @brief callback with capturing lambda declaration
  *
  * @date 2025-07-01
  * @version 1.0.0

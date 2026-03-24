@@ -122,7 +122,7 @@ void callback_fp(void) {
   dispatch_event(EVENT_PRESSED);
   dispatch_event(EVENT_RELEASED);
 
-  LOG_INF("Final counts: btn_a pressed=%u btn_b pressed=%u\n",
+  LOG_INF("callback_fp: Final counts: btn_a pressed=%u btn_b pressed=%u",
           btn_a.press_count,
           btn_b.press_count);
 

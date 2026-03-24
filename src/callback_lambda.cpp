@@ -16,7 +16,7 @@
  * @file callback_lambda.cpp
  * @author Serge Ayer <serge.ayer@hefr.ch>
  *
- * @brief callback with lambda function implementation
+ * @brief callback with capturing lambda implementation
  *        As compared to callback_fp, replace void* context + function pointer with a
  *        capturing lambda. The capture list carries state — no cast needed.
  *
@@ -124,7 +124,7 @@ void callback_lambda() {
   dispatch_event(Event::Pressed);
   dispatch_event(Event::Released);
 
-  LOG_INF("Final counts: btn_a pressed=%u  btn_b pressed=%u",
+  LOG_INF("callback_lambda: Final counts: btn_a pressed=%u  btn_b pressed=%u",
           btn_a.press_count,
           btn_b.press_count);
 
