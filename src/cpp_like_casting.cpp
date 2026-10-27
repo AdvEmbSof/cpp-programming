@@ -26,12 +26,15 @@
 
 // zephyr
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
 
 // stl
 #include <limits>
 
-LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+#include "zpp_include/zpp_log.hpp" 
+
+ZPP_LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+
+// NOLINTBEGIN
 
 void cpp_like_casting() {
   char i  = 0;
@@ -39,9 +42,9 @@ void cpp_like_casting() {
   char* p = &i;
   void* q = p;
   int* pp = static_cast<int*>(q);  // unsafe, but with explicit conversion
-  LOG_DBG("%d %d", i, j);
+  ZPP_LOG_DBG("%d %d", i, j);
   *pp = -1;  // This overwrites memory starting at &i
-  LOG_DBG("%d %d", i, j);
+  ZPP_LOG_DBG("%d %d", i, j);
 }
 
 class Base {
@@ -51,8 +54,10 @@ class Base {
  public:
   virtual void m1(int32_t i) {
     _d1 -= i;
-    LOG_DBG("Base::m1(): _d1: %d", _d1);
+    ZPP_LOG_DBG("Base::m1(): _d1: %d", _d1);
   }
+
+  virtual ~Base() = default;
 };
 
 class Derived : public Base {
@@ -62,12 +67,14 @@ class Derived : public Base {
  public:
   void m1(int32_t i) override {
     _d2 += i;
-    LOG_DBG("Derived::m1(): _d1: %d _d2: %d", _d1, _d2);
+    ZPP_LOG_DBG("Derived::m1(): _d1: %d _d2: %d", _d1, _d2);
   }
   void m2(int32_t i) {
     _d2 -= i;
-    LOG_DBG("Derived::m2(): _d1: %d _d2: %d", _d1, _d2);
+    ZPP_LOG_DBG("Derived::m2(): _d1: %d _d2: %d", _d1, _d2);
   }
+
+  virtual ~Derived() = default;
 };
 
 class Unrelated {
@@ -77,7 +84,7 @@ class Unrelated {
  public:
   void m() {
     _d3++;
-    LOG_DBG("Unrelated::m(): _d3: %d", _d3);
+    ZPP_LOG_DBG("Unrelated::m(): _d3: %d", _d3);
   }
 };
 
@@ -125,7 +132,7 @@ void c_vs_cpp_like_casting() {
     // The address of any object can be stored in almost any type (as long as it can store
     // the address)
     uint64_t dummy = (uint64_t)&b;  // NOLINT(readability/casting)
-    LOG_DBG("Dummy: %lld", dummy);
+    ZPP_LOG_DBG("Dummy: %lld", dummy);
 
     // In C++, some c-style casts that would be accepted in C are not accepted
     // Here char cannot store the address to b.
@@ -154,3 +161,5 @@ void c_vs_cpp_like_casting() {
     // uint64_t dummy = static_cast<uint64_t>(&b);
   }
 }
+
+// NOLINTEND

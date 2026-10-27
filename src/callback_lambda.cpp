@@ -28,17 +28,22 @@
 
 // zephyr
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
 
 // std
 #include <cstdio>
 #include <functional>
 #include <utility>
 
-LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+// zpp_lib
+#include "zephyr/sys/clock.h"
+#include "zpp_include/zpp_log.hpp"
 
+ZPP_LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers,cppcoreguidelines-owning-memory)
+// NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays,cppcoreguidelines-pro-bounds-constant-array-index)
 // ── Types ─────────────────────────────────────────────────────────────────────
-enum class Event {
+enum class Event : uint8_t {
   None     = 0,
   Pressed  = 1,
   Released = 2,
@@ -52,16 +57,18 @@ struct ButtonState {
 
 // ── Callback registry ─────────────────────────────────────────────────────────
 // Uses std::function here only to hold heterogeneous lambdas in the registry.
-static constexpr int MAX_CALLBACKS = 8;
+static constexpr int kMaxCallbacks = 8;
 
 using Callback = std::function<void(Event)>;
 
-static Callback registry[MAX_CALLBACKS];
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static Callback registry[kMaxCallbacks];
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static int registry_count = 0;
 
 static void register_callback(Callback cb) {
-  if (registry_count >= MAX_CALLBACKS) {
-    LOG_ERR("ERROR: callback registry full");
+  if (registry_count >= kMaxCallbacks) {
+    ZPP_LOG_ERR("ERROR: callback registry full");
     return;
   }
   registry[registry_count++] = std::move(cb);
@@ -90,11 +97,11 @@ void callback_lambda() {
     switch (e) {
       case Event::Pressed:
         btn_a.press_count++;
-        LOG_INF("[button %d] pressed  (total: %u)", btn_a.id, btn_a.press_count);
+        ZPP_LOG_INF("[button %d] pressed  (total: %u)", btn_a.id, btn_a.press_count);
         break;
       case Event::Released:
         btn_a.release_count++;
-        LOG_INF("[button %d] released (total: %u)", btn_a.id, btn_a.release_count);
+        ZPP_LOG_INF("[button %d] released (total: %u)", btn_a.id, btn_a.release_count);
         break;
       default:
         break;
@@ -105,11 +112,11 @@ void callback_lambda() {
     switch (e) {
       case Event::Pressed:
         btn_b.press_count++;
-        LOG_INF("[button %d] pressed  (total: %u)", btn_b.id, btn_b.press_count);
+        ZPP_LOG_INF("[button %d] pressed  (total: %u)", btn_b.id, btn_b.press_count);
         break;
       case Event::Released:
         btn_b.release_count++;
-        LOG_INF("[button %d] released (total: %u)", btn_b.id, btn_b.release_count);
+        ZPP_LOG_INF("[button %d] released (total: %u)", btn_b.id, btn_b.release_count);
         break;
       default:
         break;
@@ -117,16 +124,16 @@ void callback_lambda() {
   });
 
   // A stateless lambda — equivalent to a plain function pointer, zero overhead
-  register_callback([](Event e) { LOG_INF("[logger] event=%d", static_cast<int>(e)); });
+  register_callback([](Event e) { ZPP_LOG_INF("[logger] event=%d", static_cast<int>(e)); });
 
   // Simulate events
   dispatch_event(Event::Pressed);
   dispatch_event(Event::Pressed);
   dispatch_event(Event::Released);
 
-  LOG_INF("callback_lambda: Final counts: btn_a pressed=%u  btn_b pressed=%u",
-          btn_a.press_count,
-          btn_b.press_count);
+  ZPP_LOG_INF("callback_lambda: Final counts: btn_a pressed=%u  btn_b pressed=%u",
+              btn_a.press_count,
+              btn_b.press_count);
 
   // The callback must be of type Callback (std::function<void(Event)>)
   // It is not possible to pass a callback of another type like
@@ -134,3 +141,6 @@ void callback_lambda() {
   //
   //});
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays,cppcoreguidelines-pro-bounds-constant-array-index)
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers,cppcoreguidelines-owning-memory)

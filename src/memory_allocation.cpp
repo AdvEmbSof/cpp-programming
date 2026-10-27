@@ -26,19 +26,23 @@
 
 // zephyr
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
 
 // std
 #include <cstdlib>
 #include <memory>
 
-LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+// zpp_lib
+#include "zpp_include/zpp_assert.hpp"
+#include "zpp_include/zpp_log.hpp"
+
+ZPP_LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+
+// NOLINTBEGIN
 
 class MyClass {
  public:
   // constructor
-  MyClass() {
-    _a = 2;
+  MyClass() : _a(2), _p(nullptr) {
     _p = (uint8_t*)malloc(sizeof(uint8_t) * SIZE);  // NOLINT(readability/casting)
   }
 
@@ -62,17 +66,18 @@ class MyClassWithSlab {
   ~MyClassWithSlab() {}
 
   void* operator new(size_t size) {
-    __ASSERT(size == sizeof(MyClassWithSlab), "Incorrect size %zu", size);
+    ZPP_ASSERT(size == sizeof(MyClassWithSlab), "Incorrect size %zu", size);
     void* block_ptr = nullptr;
+    ZPP_LOG_DBG("Allocating memory from slab");
     int ret         = k_mem_slab_alloc(&MY_CLASS_SLAB, &block_ptr, K_MSEC(0));
-    __ASSERT(ret == 0, "MyClassWithPool slab exhausted");
-    LOG_DBG("Number of used slots: %d", k_mem_slab_num_used_get(&MY_CLASS_SLAB));
+    ZPP_ASSERT(ret == 0, "MyClassWithPool slab exhausted");
+    ZPP_LOG_DBG("Number of used slots: %d", k_mem_slab_num_used_get(&MY_CLASS_SLAB));
     return block_ptr;
   }
 
   void operator delete(void* p) {
     k_mem_slab_free(&MY_CLASS_SLAB, p);
-    LOG_DBG("Number of used slots: %d", k_mem_slab_num_used_get(&MY_CLASS_SLAB));
+    ZPP_LOG_DBG("Number of used slots: %d", k_mem_slab_num_used_get(&MY_CLASS_SLAB));
   }
 
   // Prevent accidental array allocation falling back to global heap
@@ -83,66 +88,68 @@ class MyClassWithSlab {
 };
 
 // Defined after class — sizeof() and alignof() are now available
-static constexpr uint8_t NBR_OF_BLOCKS = 10;
+static constexpr uint8_t kNbrOfBlocks = 10;
 K_MEM_SLAB_DEFINE(MY_CLASS_SLAB,
                   sizeof(MyClassWithSlab),
-                  NBR_OF_BLOCKS,
+                  kNbrOfBlocks,
                   alignof(MyClassWithSlab));
 
 void memory_allocation() {
   // Object not constructed!, cast required, size to be specified
-  MyClass* pInstance1 = (MyClass*)malloc(sizeof(MyClass));  // NOLINT(readability/casting)
+  auto* p_instance1 = static_cast<MyClass*>(malloc(sizeof(MyClass)));  // NOLINT(readability/casting)
   // Uncomment the next line (compiler warning because pInstance1 is not constructed)
   // printk("pInstance1->_a: %d\n", pInstance1->_a);
 
   // malloc returns nullptr when memory cannot be allocated
-  if (pInstance1 == nullptr) {
+  if (p_instance1 == nullptr) {
     printk("Cannot allocate memory\n");
   }
 
   // destructor not called!
-  free(pInstance1);
-  pInstance1 = nullptr;
+  free(p_instance1);
+  p_instance1 = nullptr;
 
   // Constructor is called, no cast required, no size specified
   // When memory cannot be allocated, new generates a exception or
   // returns nullptr, depending on implementation.
   // On zephyr rtos (and embedded systems), exceptions are usually not used.
   // try {
-  MyClass* pInstance2 = new MyClass();
-  printk("pInstance2->_a: %d\n", pInstance2->_a);
+  auto* p_instance2 = new MyClass();
+  printk("p_instance2->_a: %d\n", p_instance2->_a);
   //}
   // catch (const std::bad_alloc &e) {
   //
   //}
 
-  if (pInstance2 == nullptr) {
+  if (p_instance2 == nullptr) {
     printk("Cannot allocate memory\n");
   }
 
   {
-    MyClassWithSlab* pInstanceWithSlab1 = new MyClassWithSlab();
-    printk("pInstanceWithPool->_a: %d\n", pInstanceWithSlab1->_a);
-    MyClassWithSlab* pInstanceWithSlab2 = new MyClassWithSlab();
-    printk("pInstanceWithPool->_a: %d\n", pInstanceWithSlab2->_a);
-    delete pInstanceWithSlab1;
-    pInstanceWithSlab1 = nullptr;
-    delete pInstanceWithSlab2;
-    pInstanceWithSlab2 = nullptr;
+    auto* p_instance_with_slab1 = new MyClassWithSlab();
+    printk("p_instance_with_slab1->_a: %d\n", p_instance_with_slab1->_a);
+    auto* p_instance_with_slab2 = new MyClassWithSlab();
+    printk("p_instance_with_slab2->_a: %d\n", p_instance_with_slab2->_a);
+    delete p_instance_with_slab1;
+    p_instance_with_slab1 = nullptr;
+    delete p_instance_with_slab2;
+    p_instance_with_slab2 = nullptr;
   }
 
   // Proper allocation with smart pointers
   {
-    auto pInstanceWithSlab = std::make_unique<MyClassWithSlab>();
-    printk("pInstanceWithSlab->_a: %d\n", pInstanceWithSlab->_a);
-    LOG_DBG("Address of instance is %p", pInstanceWithSlab.get());
+    auto p_instance_with_slab = std::make_unique<MyClassWithSlab>();
+    printk("p_instance_with_slab->_a: %d\n", p_instance_with_slab->_a);
+    ZPP_LOG_DBG("Address of instance is %p", p_instance_with_slab.get());
 
-    for (uint8_t i = 0; i < NBR_OF_BLOCKS / 2; i++) {
-      auto pOtherInstanceWithSlab = std::make_unique<MyClassWithSlab>();
-      printk("i: %d, pOtherInstanceWithSlab->_a: %d\n", i, pOtherInstanceWithSlab->_a);
+    for (uint8_t i = 0; i < kNbrOfBlocks / 2; i++) {
+      auto p_other_instance_with_slab = std::make_unique<MyClassWithSlab>();
+      printk("i: %d, p_other_instance_with_slab->_a: %d\n", i, p_other_instance_with_slab->_a);
       // The address should be the same at each iteration, but different from
-      // pInstanceWithSlab
-      LOG_DBG("i: %d, Address of instance is %p", i, pOtherInstanceWithSlab.get());
+      // p_instance_with_slab
+      ZPP_LOG_DBG("i: %d, Address of instance is %p", i, p_other_instance_with_slab.get());
     }
   }
 }
+
+// NOLINTEND

@@ -30,18 +30,20 @@
 
 // zephyr
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
 
 // std
 #include <cstdint>
 #include <cstdio>
 #include <utility>
 
-LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+// zpp_lib
+#include "zpp_include/zpp_log.hpp"
+
+ZPP_LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-enum class Event {
+enum class Event : uint8_t {
   None     = 0,
   Pressed  = 1,
   Released = 2,
@@ -69,17 +71,17 @@ struct ButtonState {
 template <typename OnEvent>
 class ButtonDriver {
  public:
-  explicit ButtonDriver(int hw_id, OnEvent on_event)
+  explicit ButtonDriver(uint8_t hw_id, OnEvent on_event)
       : _hw_id(hw_id), _on_event(std::move(on_event)) {}
 
   // Simulate hardware interrupt — calls callback directly, compiler inlines it
   void simulate_press() { _on_event(Event::Pressed); }
   void simulate_release() { _on_event(Event::Released); }
 
-  int id() const { return _hw_id; }
+  [[nodiscard]] uint8_t id() const { return _hw_id; }
 
  private:
-  int _hw_id;
+  uint8_t _hw_id;
   OnEvent _on_event;  // concrete lambda type — NOT std::function
 };
 
@@ -99,11 +101,11 @@ void callback_lambda_template() {
     switch (e) {
       case Event::Pressed:
         btn_a.press_count++;
-        LOG_INF("[button %d] pressed  (total: %u)", btn_a.id, btn_a.press_count);
+        ZPP_LOG_INF("[button %d] pressed  (total: %u)", btn_a.id, btn_a.press_count);
         break;
       case Event::Released:
         btn_a.release_count++;
-        LOG_INF("[button %d] released (total: %u)", btn_a.id, btn_a.release_count);
+        ZPP_LOG_INF("[button %d] released (total: %u)", btn_a.id, btn_a.release_count);
         break;
       default:
         break;
@@ -114,11 +116,11 @@ void callback_lambda_template() {
     switch (e) {
       case Event::Pressed:
         btn_b.press_count++;
-        LOG_INF("[button %d] pressed  (total: %u)", btn_b.id, btn_b.press_count);
+        ZPP_LOG_INF("[button %d] pressed  (total: %u)", btn_b.id, btn_b.press_count);
         break;
       case Event::Released:
         btn_b.release_count++;
-        LOG_INF("[button %d] released (total: %u)", btn_b.id, btn_b.release_count);
+        ZPP_LOG_INF("[button %d] released (total: %u)", btn_b.id, btn_b.release_count);
         break;
       default:
         break;
@@ -131,9 +133,9 @@ void callback_lambda_template() {
   driver_a.simulate_press();
   driver_a.simulate_release();
 
-  LOG_INF("callback_lambda_template: Final counts: btn_a pressed=%u  btn_b pressed=%u",
-          btn_a.press_count,
-          btn_b.press_count);
+  ZPP_LOG_INF("callback_lambda_template: Final counts: btn_a pressed=%u  btn_b pressed=%u",
+              btn_a.press_count,
+              btn_b.press_count);
 
   // In this example, ButtonDriver<lambda_type_A> and ButtonDriver<lambda_type_B>
   // have different types.

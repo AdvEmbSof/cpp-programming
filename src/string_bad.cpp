@@ -26,26 +26,31 @@
 
 // zephyr
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
 
 // std
 #include <cstdlib>
 #include <memory>
 
-LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+// zpp_lib
+#include "zpp_include/zpp_log.hpp"
+
+ZPP_LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
 
 namespace badly_defined {
 
-String::String(const char* szArray) {
-  LOG_DBG("Construct from const char*");
-  _size          = strlen(szArray);
+String::String(const char* szArray) 
+: _size(strlen(szArray)) {
+  ZPP_LOG_DBG("Construct from const char*");
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
   this->_szArray = new char[_size + 1];  // +1 for null terminator
+  // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.strcpy)
   strcpy(this->_szArray, szArray);       // NOLINT(runtime/printf)
 }
 
-String::String(size_t size) {
-  LOG_DBG("Construct from int");
-  _size    = size;
+String::String(size_t size) 
+: _size(size) {
+  ZPP_LOG_DBG("Construct from int");
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
   _szArray = new char[_size + 1]{0};  // +1 for null terminator
 }
 

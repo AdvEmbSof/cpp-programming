@@ -26,19 +26,23 @@
 
 // zephyr
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
 
 // std
 #include <cstdlib>
 #include <memory>
 #include <utility>
 
-LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+// zpp_lib
+#include "zpp_include/zpp_log.hpp"
+
+ZPP_LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+
+// NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays,cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
 namespace well_defined {
 
 String::String(const char* szArray) {
-  LOG_DBG("Construct from array");
+  ZPP_LOG_DBG("Construct from array");
   if (szArray == nullptr) {
     _size       = 0;
     _szArray    = std::make_unique<char[]>(1);
@@ -50,16 +54,16 @@ String::String(const char* szArray) {
   strncpy(_szArray.get(), szArray, _size);
 }
 
-String::String(size_t size) {
-  LOG_DBG("Construct from size");
-  _size       = size;
+String::String(size_t size) 
+: _size(size) {
+  ZPP_LOG_DBG("Construct from size");
   _szArray    = std::make_unique<char[]>(_size + 1);
   _szArray[0] = '\0';
 }
 
 // Deep copy constructor — unique_ptr cannot be shared
-String::String(const String& other) {
-  _size    = other._size;
+String::String(const String& other) 
+: _size(other._size) {
   _szArray = std::make_unique<char[]>(_size + 1);
   strncpy(_szArray.get(), other._szArray.get(), _size);
 }
@@ -91,3 +95,5 @@ String& String::operator=(String&& other) noexcept {
 }
 
 }  // namespace well_defined
+
+// NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays,cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)

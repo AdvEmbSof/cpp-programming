@@ -32,7 +32,6 @@
 
 // zephyr
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
 
 // std
 #include <cstdio>
@@ -42,10 +41,13 @@
 #include <utility>
 #include <vector>
 
-LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
+// zpp_lib
+#include "zpp_include/zpp_log.hpp"
+
+ZPP_LOG_MODULE_DECLARE(programming, CONFIG_APP_LOG_LEVEL);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-enum class Event { Tick = 0, Shutdown = 1 };
+enum class Event : uint8_t { Tick = 0, Shutdown = 1 };
 
 using Callback = std::function<void(Event)>;
 
@@ -71,46 +73,55 @@ struct SharedLog {
 
   explicit SharedLog(std::string n) : name(std::move(n)) {}
 
+  SharedLog(const SharedLog&) = delete;
+  SharedLog& operator=(const SharedLog&) = delete;
+  SharedLog(SharedLog&&) = delete;
+  SharedLog& operator=(SharedLog&&) = delete;
+
   void append(const std::string& msg) {
     entries.push_back(msg);
-    LOG_INF("[%s] logged: '%s'", name.c_str(), msg.c_str());
+    ZPP_LOG_INF("[%s] logged: '%s'", name.c_str(), msg.c_str());
   }
 
   ~SharedLog() {
-    LOG_INF("SharedLog [%s] destroyed - %zu entries", name.c_str(), entries.size());
+    ZPP_LOG_INF("SharedLog [%s] destroyed - %zu entries", name.c_str(), entries.size());
   }
 };
 
 // ── 1. Dangling reference — what NOT to do ────────────────────────────────────
 [[maybe_unused]] static Callback make_dangling_callback() {
-  int local_counter = 100;
+  static constexpr uint32_t kInitialCounterValue = 100;
+  uint32_t local_counter = kInitialCounterValue;
 
   // Captures local_counter by reference.
   // local_counter is destroyed when this function returns.
   // Calling the returned lambda is undefined behaviour.
+  // clang-tidy detects this and will warn about it.
+  // NOLINTNEXTLINE(clang-analyzer-core.StackAddressEscape)
   return [&local_counter](Event) {
     // local_counter is a dangling reference here
-    LOG_INF("[value reference] counter = %d",
-            local_counter);  // Undefined behavior — do not do this
+    ZPP_LOG_INF("[value reference] counter = %d",
+                local_counter);  // Undefined behavior — do not do this
   };
 }
 
 // ── 2. Capture by value — safe for locals ────────────────────────────────────
 static Callback make_safe_callback_by_value() {
-  int local_counter = 100;
+  static constexpr uint32_t kInitialCounterValue = 100;
+  uint32_t local_counter = kInitialCounterValue;
 
   // Captures a copy of local_counter.
   // The lambda owns its copy — no dangling reference possible.
   return [local_counter](Event e) mutable {
     if (e == Event::Tick) {
       local_counter++;
-      LOG_INF("[value capture] counter = %d", local_counter);
+      ZPP_LOG_INF("[value capture] counter = %d", local_counter);
     }
   };
 }
 
 // ── 3. shared_ptr capture — shared ownership ─────────────────────────────────
-static Callback make_shared_ownership_callback(std::shared_ptr<SharedLog> log) {
+static Callback make_shared_ownership_callback(const std::shared_ptr<SharedLog>& log) {
   // Lambda captures shared_ptr by value — extends lifetime of the log
   // for as long as the lambda exists.
   return [log](Event e) {
@@ -123,7 +134,7 @@ static Callback make_shared_ownership_callback(std::shared_ptr<SharedLog> log) {
 }
 
 // ── 4. weak_ptr capture — observe without extending lifetime ──────────────────
-static Callback make_weak_callback(std::weak_ptr<SharedLog> weak_log) {
+static Callback make_weak_callback(const std::weak_ptr<SharedLog>& weak_log) {
   // Captures weak_ptr — does NOT extend the lifetime of SharedLog.
   // The callback checks whether the object still exists before using it.
   // This is the correct pattern when the callback should not prevent
@@ -131,7 +142,7 @@ static Callback make_weak_callback(std::weak_ptr<SharedLog> weak_log) {
   return [weak_log](Event e) {
     auto log = weak_log.lock();  // try to acquire strong reference
     if (!log) {
-      LOG_INF("[weak capture] SharedLog already destroyed - skipping");
+      ZPP_LOG_INF("[weak capture] SharedLog already destroyed - skipping");
       return;
     }
     if (e == Event::Tick) {
@@ -146,18 +157,18 @@ void callback_lifetime() {
   // ── Dangling reference (commented out — undefined behavior if called)
   // ─────────────────────
   //
-  LOG_INF("── Capture by reference ──");
+  ZPP_LOG_INF("── Capture by reference ──");
   Callback dangling_cb = make_dangling_callback();
   dispatcher.add(dangling_cb);  // DO NOT do this — calling it is undefined behavior
   dispatcher.dispatch(Event::Tick);
 
   // ── Capture by value — safe ───────────────────────────────────────────────
-  LOG_INF("── Capture by value ──");
+  ZPP_LOG_INF("── Capture by value ──");
   dispatcher.add(make_safe_callback_by_value());
   dispatcher.dispatch(Event::Tick);
 
   // ── shared_ptr capture ────────────────────────────────────────────────────
-  LOG_INF("── shared_ptr capture ──");
+  ZPP_LOG_INF("── shared_ptr capture ──");
   {
     auto shared_log = std::make_shared<SharedLog>("shared capture");
 
@@ -165,37 +176,37 @@ void callback_lifetime() {
     dispatcher.add(make_shared_ownership_callback(shared_log));
     dispatcher.add(make_shared_ownership_callback(shared_log));
 
-    LOG_INF("shared_log use_count before publish: %ld",
-            shared_log.use_count());  // local + 2 lambdas
+    ZPP_LOG_INF("shared_log use_count before publish: %ld",
+                 shared_log.use_count());  // local + 2 lambdas
 
     dispatcher.dispatch(Event::Tick);
 
-    LOG_INF("shared_log use_count after publish: %ld",
-            shared_log.use_count());  // identical: local + 2 lambdas
+    ZPP_LOG_INF("shared_log use_count after publish: %ld",
+                shared_log.use_count());  // identical: local + 2 lambdas
 
     // shared_log goes out of scope here but the lambdas in dispatcher still
     // hold shared_ptr copies — SharedLog is NOT destroyed yet
   }
-  LOG_INF("shared_log local reference gone - lambdas still hold it alive");
+  ZPP_LOG_INF("shared_log local reference gone - lambdas still hold it alive");
 
   // ── weak_ptr capture ──────────────────────────────────────────────────────
-  LOG_INF("── weak_ptr capture ──");
+  ZPP_LOG_INF("── weak_ptr capture ──");
   {
     auto observable_log = std::make_shared<SharedLog>("observable");
     dispatcher.add(make_weak_callback(observable_log));
 
-    LOG_INF("observable_log alive - dispatching tick:");
+    ZPP_LOG_INF("observable_log alive - dispatching tick:");
     dispatcher.dispatch(Event::Tick);
 
     // Destroy observable_log — weak_ptr callback should detect this
-    LOG_INF("Destroying observable_log...");
+    ZPP_LOG_INF("Destroying observable_log...");
     observable_log.reset();  // reference count → 0, object destroyed
 
-    LOG_INF("observable_log destroyed - dispatching tick:");
+    ZPP_LOG_INF("observable_log destroyed - dispatching tick:");
     dispatcher.dispatch(Event::Tick);  // weak_ptr callback gracefully skips
   }
 
   // ── Shutdown event ────────────────────────────────────────────────────────
-  LOG_INF("── Dispatching shutdown ──");
+  ZPP_LOG_INF("── Dispatching shutdown ──");
   dispatcher.dispatch(Event::Shutdown);
 }

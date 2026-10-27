@@ -23,18 +23,21 @@
  ***************************************************************************/
 // zephyr
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
+
+// zpp_lib
+#include "zpp_include/zpp_log.hpp"
 
 // local
 #include "c_like_casting.h"
 #include "callback_fp.h"
 #include "callback_lambda.hpp"
+#include "callback_lifetime.hpp"
 #include "callback_lambda_template.hpp"
 #include "classes.hpp"
 #include "cpp_like_casting.hpp"
 #include "memory_allocation.hpp"
 
-LOG_MODULE_REGISTER(programming, CONFIG_APP_LOG_LEVEL);
+ZPP_LOG_MODULE_REGISTER(programming, CONFIG_APP_LOG_LEVEL);
 
 int main() {
   // c_like_casting();
@@ -43,7 +46,8 @@ int main() {
   // c_vs_cpp_like_casting();
   // play_with_classes();
   // memory_allocation();
-  callback_fp();
-  callback_lambda();
-  callback_lambda_template();
+  // callback_fp();
+  // callback_lambda();
+  callback_lifetime();
+  // callback_lambda_template();
 }
